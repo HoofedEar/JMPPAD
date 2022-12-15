@@ -1,0 +1,94 @@
+@page "/Login"
+@using JMPPAD.Services
+@using Microsoft.AspNetCore.Identity
+@attribute [AllowAnonymous]
+@inject SignInManager<IdentityUser> SignInMgr
+@inject UserManager<IdentityUser> UserMgr
+@inject NavigationManager NavMgr
+
+
+<MudGrid Justify="Justify.Center">
+    <MudItem xs="12" sm="5">
+        <MudCard>
+            <MudCardContent>
+                <h2>Login</h2>
+                <MudForm>
+                    <MudTextField @bind-Value="Username" Label="Username"/>
+                    <MudTextField @bind-Value="Password" Label="Password" InputType="InputType.Password"/>
+                </MudForm>
+                <MudLink><small>Forgot Password?</small></MudLink>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Success" Class="ml-auto">Login</MudButton>
+                <MudSpacer></MudSpacer>
+                <MudButton ButtonType="ButtonType.Button" Variant="Variant.Outlined" Color="Color.Primary" Href="/Signup">Sign Up</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    MudForm form;
+    private string? Username { get; set; }
+    private bool LoginAttempt { get; set; }
+    private string? Password { get; set; }
+    private string? Error { get; set; }
+
+    private async Task Enter(KeyboardEventArgs e)
+    {
+        if (e.Code is "Enter" or "NumpadEnter")
+        {
+            LoginAttempt = true;
+            await LoginClicked();
+        }
+    }
+
+    private async Task LoginClicked()
+    {
+        LoginAttempt = true;
+        await Task.Delay(200);
+        Error = null;
+
+        if (Username is "" or null || Password is "" or null)
+        {
+            Password = "";
+            Error = "Login failed. Check your password.";
+            LoginAttempt = false;
+            return;
+        }
+
+        var usr = await UserMgr.FindByNameAsync(Username);
+        if (usr == null)
+        {
+            Password = "";
+            Error = "Login failed. Check your password.";
+            LoginAttempt = false;
+            return;
+        }
+
+
+        if (await SignInMgr.CanSignInAsync(usr))
+        {
+            var result = await SignInMgr.CheckPasswordSignInAsync(usr, Password, false);
+            if (result == SignInResult.Success)
+            {
+                var key = Guid.NewGuid();
+                LoginMiddleware.Logins[key] = new LoginInfo {Username = Username, Password = Password};
+                NavMgr.NavigateTo($"/login?key={key}", true);
+            }
+            else
+            {
+                Password = "";
+                Error = "Login failed. Check your password.";
+                LoginAttempt = false;
+            }
+        }
+        else
+        {
+            Password = "";
+            Error = "Your account is locked.";
+            LoginAttempt = false;
+        }
+    }
+
+}

@@ -1,0 +1,55 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<PageTitle>JMPPAD</PageTitle>
+
+<div class="page">
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer"/>
+            <MudSpacer/>
+            Hello
+            <MudSpacer/>
+            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" Link="https://github.com/MudBlazor/MudBlazor" Target="_blank"/>
+        </MudAppBar>
+        <MudDrawer @bind-Open="@open" Elevation="0" Variant="@DrawerVariant.Temporary">
+            <MudDrawerHeader>
+                <MudText Typo="Typo.h6">JMPPAD</MudText>
+            </MudDrawerHeader>
+            <MudNavMenu>
+                <MudNavLink Href="/Counter">Counter</MudNavLink>
+                <AuthorizeView>
+                    <Authorized>
+                        <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
+                        <form method="post" action="Identity/Account/Logout">
+                            <button type="submit" class="nav-link btn btn-link">Log out</button>
+                        </form>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudNavLink Href="/Signup">Sign Up</MudNavLink>
+                        <MudNavLink Href="/Login">Login</MudNavLink>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </MudNavMenu>
+        </MudDrawer>
+        <MudMainContent>
+            <MudContainer Class="pa-3">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+    <LoginDisplay/>
+</div>
+
+@code{
+    bool open = false;
+
+    void ToggleDrawer()
+    {
+        open = !open;
+    }
+
+}
