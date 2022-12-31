@@ -2,37 +2,51 @@
 @using JMPPAD.Services
 @using Microsoft.AspNetCore.Identity
 @attribute [AllowAnonymous]
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SignInManager<IdentityUser> SignInMgr
 @inject UserManager<IdentityUser> UserMgr
 @inject NavigationManager NavMgr
 
 
 <MudGrid Justify="Justify.Center">
-    <MudItem xs="12" sm="5">
+    <MudItem lg="6" xs="12" sm="6">
         <MudCard>
             <MudCardContent>
                 <h2>Login</h2>
+                <MudText Color="Color.Error">@Error</MudText>
                 <MudForm>
                     <MudTextField @bind-Value="Username" Label="Username"/>
                     <MudTextField @bind-Value="Password" Label="Password" InputType="InputType.Password"/>
                 </MudForm>
-                <MudLink><small>Forgot Password?</small></MudLink>
+                <MudLink>
+                    <small>Forgot Password?</small>
+                </MudLink>
             </MudCardContent>
             <MudCardActions>
-                <MudButton ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Success" Class="ml-auto">Login</MudButton>
-                <MudSpacer></MudSpacer>
-                <MudButton ButtonType="ButtonType.Button" Variant="Variant.Outlined" Color="Color.Primary" Href="/Signup">Sign Up</MudButton>
+                <MudButton Disabled="LoginAttempt" FullWidth="true" OnClick="LoginClicked" ButtonType="ButtonType.Button" Variant="Variant.Filled" Color="Color.Success" Class="ml-auto">Login</MudButton>
+            </MudCardActions>
+            <MudCardActions>
+                <MudButton FullWidth="true" ButtonType="ButtonType.Button" Variant="Variant.Text" Color="Color.Primary" Href="/Signup">Sign Up</MudButton>
             </MudCardActions>
         </MudCard>
     </MudItem>
 </MudGrid>
 
 @code {
-    MudForm form;
     private string? Username { get; set; }
     private bool LoginAttempt { get; set; }
     private string? Password { get; set; }
     private string? Error { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity is {IsAuthenticated: true })
+        {
+            NavMgr.NavigateTo("/");
+        }
+        await base.OnParametersSetAsync();
+    }
 
     private async Task Enter(KeyboardEventArgs e)
     {

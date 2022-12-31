@@ -1,0 +1,496 @@
+@page "/Deck/{DeckId}/{EditMode:bool?}"
+@using JMPPAD.Helpers
+@using JMPPAD.Data.Tables
+@using Microsoft.AspNetCore.Identity
+@using CSharpVitamins
+@inject DeckHelpers DeckHelpers
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<IdentityUser> UserManager
+@inject ISnackbar Snackbar
+@inject ManaHelpers ManaHelpers
+@inject NavigationManager NavigationManager
+
+<style>
+    #mana-curve {
+      --color: lightgray;
+    }
+    #mana-curve td {
+        font-size: 12px;
+        color: black;
+    }
+</style>
+
+@if (Valid)
+{
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" sm="6">
+            <MudPaper Outlined="true">
+                <MudSimpleTable Dense="true" Outlined="false" Bordered="false">
+                    <thead>
+                    <tr>
+                        <th>
+                            @if (!EditMode)
+                            {
+                                <MudText GutterBottom="true" Typo="Typo.h6">@Deck!.Name</MudText>
+                            }
+                            else
+                            {
+                                <MudTextField Margin="Margin.Dense" @bind-Value="@Deck!.Name" Label="Deck Name" Variant="Variant.Text"/>
+                            }
+                            <AuthorizeView>
+                                <Authorized>
+                                    <MudGrid Class="py-4" Justify="Justify.SpaceAround">
+                                        @if (!EditMode && IsOwner)
+                                        {
+                                            <MudTooltip Text="Edit Mode">
+                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="fa-solid fa-pen-to-square fa-fw" Color="Color.Info"></MudIconButton>
+                                            </MudTooltip>
+                                        }
+                                        else if (IsOwner)
+                                        {
+                                            <MudTooltip Text="View Mode">
+                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="fa-solid fa-eye fa-fw" Color="Color.Info"></MudIconButton>
+                                            </MudTooltip>
+                                        }
+                                        <MudTooltip Text="Create Copy">
+                                            <MudIconButton Size="Size.Medium" OnClick="ConfirmCopy" Icon="fa-solid fa-copy fa-fw" Color="Color.Info"></MudIconButton>
+                                        </MudTooltip>
+                                        <MudTooltip Text="Add to Favorites">
+                                            <MudIconButton Icon="fa-regular fa-heart" Color="Color.Error"></MudIconButton>
+                                        </MudTooltip>
+                                        @if (!EditMode)
+                                        {
+                                            <MudTooltip Text="Share Link">
+                                                <MudIconButton Size="Size.Medium" OnClick="@(() => Snackbar.Add("Link copied to clipboard", Severity.Success))" Icon="fa-solid fa-share-from-square fa-fw" Color="Color.Info"></MudIconButton>
+                                            </MudTooltip>
+                                        }
+                                        else
+                                        {
+                                            <MudTooltip Text="Delete Deck">
+                                                <MudIconButton Size="Size.Medium" OnClick="ConfirmDelete" Icon="fa-solid fa-trash fa-fw" Color="Color.Error"></MudIconButton>
+                                            </MudTooltip>
+                                        }
+                                    </MudGrid>
+                                </Authorized>
+                            </AuthorizeView>
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @if (EditMode)
+                    {
+                        <tr>
+                            <td>
+                                <MudForm>
+                                    <MudAutocomplete @ref="AddCardForm" Immediate="true" Dense="true" Margin="Margin.Dense" T="string"
+                                                     Label="Add Card" @bind-Value="AddCard" SearchFunc="@Search"
+                                                     CoerceText="true" ResetValueOnEmptyText="true"
+                                                     Adornment="Adornment.End" AdornmentIcon="fa-solid fa-plus fa-fw"
+                                                     OnAdornmentClick="AddCardClick" AdornmentColor="Color.Success" AdornmentAriaLabel="Add Card"/>
+                                </MudForm>
+                            </td>
+                        </tr>
+                    }
+                    @if (DeckList != null && DeckList.Any())
+                    {
+                        foreach (var card in DeckList)
+                        {
+                            <tr>
+                                <MudTd Style="border-width: 0">
+                                    <MudButton OnClick="() => ShowCardImage(card)" Style="@($"color: black; background:{RowColorParse(card)}; width: {WidthParse()}")" Size="Size.Small" ButtonType="ButtonType.Button">@card.Name</MudButton>
+                                    @if (EditMode)
+                                    {
+                                        <MudIconButton Style="padding-left: 3%" OnClick="() => { RemoveCardClick(card); }" Color="Color.Error" Size="Size.Small" Icon="fa-solid fa-square-minus"/>
+                                    }
+                                </MudTd>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" Style="min-height: 200px">
+            <MudPaper Outlined="true">
+                <MudSimpleTable>
+                    <tbody>
+                    <tr>
+                        <td>
+                            Colors:
+                            @if (DeckList != null)
+                            {
+                                var colors = ManaHelpers.DeckListColorParse(DeckList);
+
+                                foreach (var symbol in colors)
+                                {
+                                    @((MarkupString) symbol)
+                                }
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Created By: @OwnerName</td>
+                    </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+            <table id="mana-curve" class="charts-css column show-labels data-spacing-2 show-heading pt-4" style="min-height: 225px; max-height: 225px">
+                @if (ManaCurve != null && ManaCurve.Any())
+                {
+                    <caption> Mana Curve (Avg: @Math.Round(ManaCurve.Average(), 2)) </caption>
+                }
+                <tbody>
+                @if (ManaCurve != null && ManaCurve.Any())
+                {
+                    <tr>
+                        <th scope="row"> 0 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 0);">
+                            @if (ManaCurve.Count(i => i == 0) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 0)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 1 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 1);">
+                            @if (ManaCurve.Count(i => i == 1) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 1)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 2 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 2);">
+                            @if (ManaCurve.Count(i => i == 2) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 2)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 3 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 3);">
+                            @if (ManaCurve.Count(i => i == 3) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 3)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 4 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 4);">
+                            @if (ManaCurve.Count(i => i == 4) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 4)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 5 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 5);">
+                            @if (ManaCurve.Count(i => i == 5) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 5)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 6 </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i == 6);">
+                            @if (ManaCurve.Count(i => i == 6) > 0)
+                            {
+                                @ManaCurve.Count(i => i == 6)
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"> 7+ </th>
+                        <td style="--size: 0.@ManaCurve.Count(i => i >= 7);">
+                            @if (ManaCurve.Count(i => i >= 7) > 0)
+                            {
+                                @ManaCurve.Count(i => i >= 7)
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </MudItem>
+    </MudGrid>
+}
+else
+{
+    <MudGrid Justify="Justify.Center">
+        <MudItem>
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                Deck Not Found
+            </MudAlert>
+        </MudItem>
+    </MudGrid>
+}
+
+
+@code {
+
+    [Parameter]
+    public string? DeckId { get; set; }
+
+    [Parameter]
+    public bool EditMode { get; set; }
+
+    private bool Valid { get; set; }
+    private Deck? Deck { get; set; }
+    private List<Card>? DeckList { get; set; }
+    private bool IsOwner { get; set; }
+    private string? OwnerName { get; set; }
+
+    private string? AddCard { get; set; }
+    private string[] CardNames { get; set; } = {};
+    private MudAutocomplete<string> AddCardForm { get; set; } = null!;
+
+    private List<int>? ManaCurve { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (DeckId == null)
+        {
+            Valid = false;
+            await base.OnParametersSetAsync();
+            return;
+        }
+
+        ShortGuid deckSid = DeckId;
+        DeckId = deckSid.Guid.ToString();
+
+        Deck = await DeckHelpers.CheckDeckId(DeckId);
+
+        if (Deck.Id != Guid.Empty)
+        {
+            Valid = true;
+            await LoadDeck();
+        }
+        else
+        {
+            Valid = false;
+        }
+
+    // If they are not the deck owner, intercept ability to edit
+        await CheckOwner();
+        if (!IsOwner)
+        {
+            EditMode = false;
+        }
+
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task CheckOwner()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        var userId = UserManager.GetUserId(user);
+        if (string.Equals(userId, Deck?.Owner.ToString(), StringComparison.OrdinalIgnoreCase))
+        {
+            IsOwner = true;
+        }
+        var owner = await UserManager.FindByIdAsync(Deck?.Owner.ToString() ?? string.Empty);
+        OwnerName = owner?.UserName;
+    }
+
+    private async Task LoadDeck()
+    {
+        ManaCurve = new List<int>();
+        Deck = await DeckHelpers.CheckDeckId(DeckId!);
+
+        DeckList = await DeckHelpers.GetDeckList(DeckId!);
+
+        DeckList = DeckList.OrderByDescending(o => o.ManaValue).ToList();
+        foreach (var card in DeckList.Where(card => card.ManaValue != null).Where(card => card.TypeLine != null && !card.TypeLine.Contains("Land")))
+        {
+            ManaCurve.Add((int) card.ManaValue!);
+        }
+        ManaCurve.Sort();
+    }
+
+    private string RowColorParse(Card card)
+    {
+        if (card.TypeLine!.Contains("Land"))
+        {
+            return "#ffe0c0";
+        }
+
+        return card.Colors switch
+        {
+            "W" => "#ffffeb",
+            "U" => "#d4edff",
+            "B" => "#d6cbd6",
+            "R" => "#ffc8c8",
+            "G" => "#e9ffd4",
+        {Length: > 1 } => Colors.Amber.Lighten4,
+            _ => "#e9e7eb"
+            };
+    }
+
+    private async Task ConfirmCopy()
+    {
+    // Confirm that the User wants to create a copy of this deck for themselves
+    // Flow: If yes, create the deck in the backend, then redirect the User to the edit page for that deck
+        var parameters = new DialogParameters
+        {
+            {"ContentText", "Are you sure you want create a new copy of this deck?"},
+            {"ButtonText", "Yes"},
+            {"Color", Color.Success}
+        };
+
+        await DialogService.ShowAsync<ConfirmDialog>("Confirm", parameters);
+    }
+    
+    private async Task ConfirmDelete()
+    {
+        var parameters = new DialogParameters
+        {
+            {"ContentText", "Are you sure you want to delete this deck? This can't be undone."},
+            {"ButtonText", "Yes"},
+            {"Color", Color.Error}
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm", parameters);
+        var result = await dialog.Result;
+        if (!result.Cancelled)
+        {
+            if (DeckId != null) await DeckHelpers.DeleteDeck(DeckId);
+            NavigationManager.NavigateTo("/mydecks");
+        }
+    }
+
+    private async Task EditModeToggle()
+    {
+        if (EditMode)
+            if (Deck != null)
+                await DeckHelpers.UpdateDeckName(Deck, Deck.Name!);
+
+        EditMode = !EditMode;
+
+        Snackbar.Add(EditMode ? "Edit mode enabled" : "View mode enabled", Severity.Info);
+
+        if (CardNames.Length == 0)
+            CardNames = await DeckHelpers.GetCardNames();
+
+        StateHasChanged();
+    }
+
+    private void ShowCardImage(Card card)
+    {
+        ViewingCard = card;
+        Printings = DeckHelpers.GetCardPrintings(card).Result;
+        Visible = true;
+    }
+
+    private async Task AddCardClick()
+    {
+        var result = false;
+        if (Deck != null && !string.IsNullOrEmpty(AddCard))
+        {
+            result = await DeckHelpers.AddCardToDeck(Deck, AddCard!);
+        }
+
+        if (result)
+        {
+            AddCard = "";
+            await AddCardForm.Clear();
+            await LoadDeck();
+            StateHasChanged();
+        }
+    }
+
+    private async void RemoveCardClick(Card card)
+    {
+        var result = false;
+        if (Deck != null)
+        {
+            result = await DeckHelpers.RemoveCardFromDeck(Deck, card);
+        }
+
+        if (!result) return;
+
+        await LoadDeck();
+        StateHasChanged();
+    }
+
+    private string WidthParse()
+    {
+        return EditMode ? "89%" : "100%";
+    }
+
+    private Task<IEnumerable<string>> Search(string value)
+    {
+        return Task.FromResult(string.IsNullOrEmpty(value) ? Array.Empty<string>() : CardNames.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase)));
+    }
+
+}
+
+
+<MudDialog @bind-IsVisible="Visible" Options="@(new DialogOptions {CloseButton = true})">
+    <TitleContent>
+        <MudText Align="Align.Start" Typo="Typo.h6">
+            @ViewingCard?.Name
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudImage Fluid="true" Src="@ViewingCard?.ImageUri"></MudImage>
+        @if (EditMode)
+        {
+            <MudSelect Dense="true" Style="max-width: 330px" @ref="PrintSelector" Placeholder="@(Placeholder())" Value="ViewingCard" Label="Select Printing" T="Card" ValueChanged="@ChangePrint">
+                @if (Printings != null && Printings.Any())
+                {
+                    @foreach (var print in Printings)
+                    {
+                        <MudSelectItem Value="@print" T="Card">
+                            @print.SetName (@print.CollectorNumber)
+                        </MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    private Card? ViewingCard { get; set; }
+    private Card[]? Printings { get; set; }
+    private MudSelect<Card>? PrintSelector { get; set; }
+
+    private bool Visible { get; set; }
+
+    async Task ChangePrint(Card value)
+    {
+        if (Deck != null && ViewingCard != null)
+            await DeckHelpers.UpdateCardInDeck(Deck, ViewingCard, value);
+        ViewingCard = value;
+        await LoadDeck();
+    }
+
+    string Placeholder()
+    {
+        if (ViewingCard != null)
+        {
+            return ViewingCard.SetName + "(" + ViewingCard.CollectorNumber + ")";
+        }
+        return "";
+    }
+
+    // void Cancel()
+    // {
+    //     Visible = false;
+    //     ViewingCard = null;
+    //     Printings = null;
+    // }
+
+}

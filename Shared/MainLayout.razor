@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider/>
+<MudThemeProvider @bind-IsDarkMode="@_darkMode"/>
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
@@ -9,47 +9,80 @@
 <div class="page">
     <MudLayout>
         <MudAppBar Elevation="1">
-            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer"/>
+            <MudImage Src="svg/JMPPAD.svg" style="max-width: 120px; padding-top: 5px" />
             <MudSpacer/>
-            Hello
-            <MudSpacer/>
-            <MudIconButton Icon="@Icons.Material.Filled.Person" Color="Color.Inherit" Link="https://github.com/MudBlazor/MudBlazor" Target="_blank"/>
+            <AuthorizeView>
+                <Authorized>
+                    <MudTooltip Text="Decks">
+                        <MudIconButton Icon="fa-regular fa-cards-blank fa-fw" Href="/mydecks" Color="Color.Inherit"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Cubes">
+                        <MudIconButton Icon="fa-regular fa-cube fa-fw" Color="Color.Inherit"/>
+                    </MudTooltip>
+                    <MudIconButton Icon="fa-regular fa-heart fa-fw" Color="Color.Inherit"/>
+                    <MudTooltip Text="Account">
+                        <MudIconButton Icon="fa-regular fa-user-astronaut fa-fw" OnClick="@(() => { if (context.User.Identity is {Name: { } }) OpenDialog(context.User.Identity.Name); })" Color="Color.Inherit"/>
+                    </MudTooltip>
+                </Authorized>
+                <NotAuthorized>
+                    <MudIconButton Icon="fa-regular fa-user-plus fa-fw" Href="/signup" Color="Color.Inherit"/>
+                    <MudIconButton Icon="fa-regular fa-right-to-bracket fa-fw" Href="/login" Color="Color.Inherit"/>
+                </NotAuthorized>
+            </AuthorizeView>
         </MudAppBar>
-        <MudDrawer @bind-Open="@open" Elevation="0" Variant="@DrawerVariant.Temporary">
-            <MudDrawerHeader>
-                <MudText Typo="Typo.h6">JMPPAD</MudText>
-            </MudDrawerHeader>
-            <MudNavMenu>
-                <MudNavLink Href="/Counter">Counter</MudNavLink>
-                <AuthorizeView>
-                    <Authorized>
-                        <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
-                        <form method="post" action="Identity/Account/Logout">
-                            <button type="submit" class="nav-link btn btn-link">Log out</button>
-                        </form>
-                    </Authorized>
-                    <NotAuthorized>
-                        <MudNavLink Href="/Signup">Sign Up</MudNavLink>
-                        <MudNavLink Href="/Login">Login</MudNavLink>
-                    </NotAuthorized>
-                </AuthorizeView>
-            </MudNavMenu>
-        </MudDrawer>
-        <MudMainContent>
-            <MudContainer Class="pa-3">
+        <MudMainContent Class="pb-4">
+            <MudContainer Fixed="true" Class="pa-3" Style="max-width: 850px;">
                 @Body
             </MudContainer>
         </MudMainContent>
     </MudLayout>
-    <LoginDisplay/>
 </div>
 
 @code{
-    bool open = false;
+    // TODO Add DarkMode to User table
+    bool _darkMode;
+    private string? Username { get; set; }
 
-    void ToggleDrawer()
+    void OpenDialog(string user)
     {
-        open = !open;
+        Username = user;
+        Visible = true;
+    }
+
+}
+
+<MudDialog @bind-IsVisible="@Visible" Style="min-width: 320px; max-width: 320px;">
+    <TitleContent>
+        <div class="d-flex">
+            <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                <MudIcon Color="Color.Dark" Icon="@Icons.Custom.Uncategorized.Radioactive" Size="Size.Large"/>
+            </MudAvatar>
+            <MudText Class="pt-2 pl-2">@Username</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudSwitch @bind-Checked="@_darkMode" Color="Color.Primary" Label="Dark Mode"/>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Submit">Close</MudButton>
+        <MudButton Color="Color.Error" Href="/logout">Logout</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool Visible { get; set; }
+
+    void Submit()
+    {
+        Visible = false;
     }
 
 }

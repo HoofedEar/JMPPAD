@@ -26,13 +26,16 @@ public class LoginMiddleware
         // Login request
         if (context.Request.Path == "/login" && context.Request.Query.ContainsKey("key"))
         {
-            var key = Guid.Parse(context.Request.Query["key"]);
+            var key = Guid.Parse(context.Request.Query["key"]!);
             var info = Logins[key];
 
-            var result = await signInMgr.PasswordSignInAsync(info.Username, info.Password, false, true);
-            info.Password = null;
-            if (!result.Succeeded) throw new Exception("Login failed. Please contact support for assistance.");
-            
+            if (info is {Username: { }, Password: { }})
+            {
+                var result = await signInMgr.PasswordSignInAsync(info.Username, info.Password, false, true);
+                info.Password = null;
+                if (!result.Succeeded) throw new Exception("Login failed. Please contact support for assistance.");
+            }
+
             Logins.Remove(key);
             context.Response.Redirect("/");
             return;
@@ -50,7 +53,7 @@ public class LoginMiddleware
         // Register request
         if (context.Request.Path == "/register" && context.Request.Query.ContainsKey("key"))
         {
-            var key = Guid.Parse(context.Request.Query["key"]);
+            var key = Guid.Parse(context.Request.Query["key"]!);
             var info = Logins[key];
 
             var user = new IdentityUser
@@ -61,13 +64,19 @@ public class LoginMiddleware
                 NormalizedEmail = info.Email?.ToUpper()
             };
 
-            var registerResult = await signInMgr.UserManager.CreateAsync(user, info.Password);
-            if (!registerResult.Succeeded) throw new Exception(string.Join(", ", registerResult.Errors.Select(i => i.Description)));
-            
-            var signInResult = await signInMgr.PasswordSignInAsync(info.Username, info.Password, false, true);
-            info.Password = null;
-            if (!signInResult.Succeeded) throw new Exception("Login failed. Please contact support for assistance.");
-            
+            if (info.Password != null)
+            {
+                var registerResult = await signInMgr.UserManager.CreateAsync(user, info.Password);
+                if (!registerResult.Succeeded) throw new Exception(string.Join(", ", registerResult.Errors.Select(i => i.Description)));
+            }
+
+            if (info is {Username: { }, Password: { }})
+            {
+                var signInResult = await signInMgr.PasswordSignInAsync(info.Username, info.Password, false, true);
+                info.Password = null;
+                if (!signInResult.Succeeded) throw new Exception("Login failed. Please contact support for assistance.");
+            }
+
             Logins.Remove(key);
             context.Response.Redirect("/");
             return;

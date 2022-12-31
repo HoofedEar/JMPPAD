@@ -8,12 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="CSharpVitamins.ShortGuid" Version="2.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="7.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.0" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="7.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.0" />
         <PackageReference Include="MudBlazor" Version="6.1.5" />
+        <PackageReference Include="Radzen.Blazor" Version="4.4.7" />
     </ItemGroup>
 
     <ItemGroup>
@@ -23,6 +25,16 @@
 
     <ItemGroup>
       <Folder Include="Data\Migrations" />
+      <Folder Include="Data\Scryfall\BulkData" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Update="wwwroot\svg\JMPPAD-black.svg">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Update="wwwroot\svg\JMPPAD-white.svg">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
     </ItemGroup>
 
 </Project>

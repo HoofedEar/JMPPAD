@@ -1,0 +1,17 @@
+<MudDialog>
+    <DialogContent>
+        <MudImage Fluid="true" Src="@ContentImageUri"></MudImage>
+    </DialogContent>
+    <DialogActions>
+        <MudIconButton Icon="fa-solid fa-close fa-fw" OnClick="Cancel"></MudIconButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] 
+    public string? ContentImageUri { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
+}
