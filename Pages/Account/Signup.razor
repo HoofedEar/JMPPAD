@@ -6,6 +6,13 @@
 @inject UserManager<IdentityUser> UserMgr
 @inject NavigationManager NavMgr
 
+<MudGrid Justify="Justify.Center">
+    <MudItem>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            Please note that JMPPAD is in an early Alpha state. Changes may occur or corrupt your user data at any time.
+        </MudAlert>
+    </MudItem>
+</MudGrid>
 <EditForm Model="@_model" OnValidSubmit="OnValidSubmit">
     <DataAnnotationsValidator/>
     <MudGrid Justify="Justify.Center">

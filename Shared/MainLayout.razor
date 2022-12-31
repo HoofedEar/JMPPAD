@@ -1,6 +1,26 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider @bind-IsDarkMode="@_darkMode"/>
+<MudThemeProvider Theme="_defaultTheme" @bind-IsDarkMode="@_darkMode"/>
+
+@code{
+
+    readonly MudTheme _defaultTheme = new()
+    {
+        Palette = new Palette
+        {
+            Primary = "#3371CC",
+            Secondary = "#379A95",
+            AppbarBackground = "3371cc"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#3371CC",
+            Secondary = "#379A95",
+            AppbarBackground = "3371cc"
+        }
+    };
+}
+
 <MudDialogProvider/>
 <MudSnackbarProvider/>
 
@@ -9,7 +29,9 @@
 <div class="page">
     <MudLayout>
         <MudAppBar Elevation="1">
-            <MudImage Src="svg/JMPPAD.svg" style="max-width: 120px; padding-top: 5px" />
+            <a href="/" style="max-width: 120px; width: 100%;">
+                <img src="svg/JMPPAD.svg" style="max-width: 120px; padding-top: 14px;" alt="JMPPAD"/>
+            </a>
             <MudSpacer/>
             <AuthorizeView>
                 <Authorized>

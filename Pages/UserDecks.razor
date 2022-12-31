@@ -13,7 +13,7 @@
     <MudItem xs="12">
         <MudSpacer/>
         <MudList Clickable="true">
-            <MudListItem Icon="fa-solid fa-book-sparkles" IconColor="Color.Info" OnClick="ShowCreateDeck">Create New Deck</MudListItem>
+            <MudListItem Icon="fa-solid fa-book-sparkles" IconColor="Color.Primary" OnClick="ShowCreateDeck">Create New Deck</MudListItem>
             <MudDivider/>
             @if (UserDeckList != null && UserDeckList.Any())
             {
@@ -71,32 +71,37 @@
 }
 
 <MudDialog @bind-IsVisible="Visible" Options="_options">
+    <TitleContent>
+        <MudText Align="Align.Start" Typo="Typo.h6">
+            Create New Deck
+        </MudText>
+    </TitleContent>
     <DialogContent>
         <MudForm>
             <MudGrid Justify="Justify.Center">
                 <MudItem xs="12" Class="align-content-center">
                     <MudTextField @bind-Value="NewDeckName" Placeholder="Deck Name" T="string" Variant="Variant.Outlined" Margin="Margin.Dense"/>
                 </MudItem>
-                <MudItem xs="12" Class="align-content-center">
-                    <MudSelect @bind-Value="NewDeckTheme" Margin="Margin.Dense" Dense="true" Text="Theme" T="string" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("LastModified")" T="string">
-                            Last Modified
-                        </MudSelectItem>
-                        <MudSelectItem Value="@("Color")" T="string">
-                            Color
-                        </MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12">
-                    <MudButtonGroup Style="width: 100%; justify-content: center" Color="Color.Default" Variant="Variant.Outlined">
-                        <MudIconButton Icon="ms ms-w" OnClick="() => {_w.Selected = !_w.Selected; _c.Selected = false;}" Style="@(_w.Selected ? @"color: black; background: rgb(248, 231, 185)" : @"color: black; background: white")"/>
-                        <MudIconButton Icon="ms ms-u" OnClick="() => {_u.Selected = !_u.Selected; _c.Selected = false;}" Style="@(_u.Selected ? @"color: black; background: rgb(179, 206, 234)" : @"color: black; background: white")"/>
-                        <MudIconButton Icon="ms ms-b" OnClick="() => {_b.Selected = !_b.Selected; _c.Selected = false;}" Style="@(_b.Selected ? @"color: black; background: rgb(166, 159, 157)" : @"color: black; background: white")"/>
-                        <MudIconButton Icon="ms ms-r" OnClick="() => {_r.Selected = !_r.Selected; _c.Selected = false;}" Style="@(_r.Selected ? @"color: black; background: rgb(235, 159, 130)" : @"color: black; background: white")"/>
-                        <MudIconButton Icon="ms ms-g" OnClick="() => {_g.Selected = !_g.Selected; _c.Selected = false;}" Style="@(_g.Selected ? @"color: black; background: rgb(196, 211, 202)" : @"color: black; background: white")"/>
-                        <MudIconButton Icon="ms ms-c" OnClick="() => {_c.Selected = !_c.Selected; _w.Selected = _u.Selected = _b.Selected = _r.Selected = _g.Selected = false;}" Style="@(_c.Selected ? @"color: black; background: rgb(196, 187, 184)" : @"color: black; background: white")"/>
-                    </MudButtonGroup>
-                </MudItem>
+                @* <MudItem xs="12" Class="align-content-center"> *@
+                @*     <MudSelect @bind-Value="NewDeckTheme" Margin="Margin.Dense" Dense="true" Text="Theme" T="string" Variant="Variant.Outlined"> *@
+                @*         <MudSelectItem Value="@("LastModified")" T="string"> *@
+                @*             Last Modified *@
+                @*         </MudSelectItem> *@
+                @*         <MudSelectItem Value="@("Color")" T="string"> *@
+                @*             Color *@
+                @*         </MudSelectItem> *@
+                @*     </MudSelect> *@
+                @* </MudItem> *@
+                @* <MudItem xs="12"> *@
+                @*     <MudButtonGroup Style="width: 100%; justify-content: center" Color="Color.Default" Variant="Variant.Outlined"> *@
+                @*         <MudIconButton Icon="ms ms-w" OnClick="() => {_w.Selected = !_w.Selected; _c.Selected = false;}" Style="@(_w.Selected ? @"color: black; background: rgb(248, 231, 185)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-u" OnClick="() => {_u.Selected = !_u.Selected; _c.Selected = false;}" Style="@(_u.Selected ? @"color: black; background: rgb(179, 206, 234)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-b" OnClick="() => {_b.Selected = !_b.Selected; _c.Selected = false;}" Style="@(_b.Selected ? @"color: black; background: rgb(166, 159, 157)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-r" OnClick="() => {_r.Selected = !_r.Selected; _c.Selected = false;}" Style="@(_r.Selected ? @"color: black; background: rgb(235, 159, 130)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-g" OnClick="() => {_g.Selected = !_g.Selected; _c.Selected = false;}" Style="@(_g.Selected ? @"color: black; background: rgb(196, 211, 202)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-c" OnClick="() => {_c.Selected = !_c.Selected; _w.Selected = _u.Selected = _b.Selected = _r.Selected = _g.Selected = false;}" Style="@(_c.Selected ? @"color: black; background: rgb(196, 187, 184)" : @"color: black; background: white")"/> *@
+                @*     </MudButtonGroup> *@
+                @* </MudItem> *@
             </MudGrid>
         </MudForm>
     </DialogContent>

@@ -43,38 +43,69 @@ public class ManaHelpers
     public List<string> DeckListColorParse(List<Card> decklist)
     {
         var colorList = new List<string>();
+        var colorListPre = new List<string>();
         foreach (var card in decklist)
         {
             if (card.Colors == null) continue;
-            if (card.Colors.Contains('W') && !colorList.Contains(W()))
+            if (card.Colors.Contains('W') && !colorListPre.Contains("W"))
             {
-                colorList.Add(W());
+                colorListPre.Add("W");
             }
 
-            if (card.Colors.Contains('U') && !colorList.Contains(U()))
+            if (card.Colors.Contains('U') && !colorListPre.Contains("U"))
             {
-                colorList.Add(U());
+                colorListPre.Add("U");
             }
 
-            if (card.Colors.Contains('B') && !colorList.Contains(B()))
+            if (card.Colors.Contains('B') && !colorListPre.Contains("B"))
             {
-                colorList.Add(B());
+                colorListPre.Add("B");
             }
 
-            if (card.Colors.Contains('R') && !colorList.Contains(R()))
+            if (card.Colors.Contains('R') && !colorListPre.Contains("R"))
             {
-                colorList.Add(R());
+                colorListPre.Add("R");
             }
 
-            if (card.Colors.Contains('G') && !colorList.Contains(G()))
+            if (card.Colors.Contains('G') && !colorListPre.Contains("G"))
             {
-                colorList.Add(G());
+                colorListPre.Add("G");
             }
         }
-        
+
+        var newList = colorListPre.OrderBy(c => c == "W")
+            .ThenBy(c => c == "U")
+            .ThenBy(c => c == "B")
+            .ThenBy(c => c == "R")
+            .ThenBy(c => c == "G")
+            .ToList();
+
+        newList.Reverse();
+        foreach (var color in newList)
+        {
+            switch (color)
+            {
+                case "W":
+                    colorList.Add(W());
+                    break;
+                case "U":
+                    colorList.Add(U());
+                    break;
+                case "B":
+                    colorList.Add(B());
+                    break;
+                case "R":
+                    colorList.Add(R());
+                    break;
+                case "G":
+                    colorList.Add(G());
+                    break;
+            }
+        }
+
         if (!colorList.Any())
             colorList.Add(C());
-
+        
         return colorList;
     }
 
