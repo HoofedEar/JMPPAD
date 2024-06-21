@@ -1,0 +1,147 @@
+@page "/Signup"
+@using System.ComponentModel.DataAnnotations
+@using JMPPAD.Data.Tables.UserData
+@using JMPPAD.Services
+@using Microsoft.AspNetCore.Identity
+@attribute [AllowAnonymous]
+@inject UserManager<ApplicationUser> UserMgr
+@inject NavigationManager NavMgr
+
+<MudGrid Justify="Justify.Center">
+    <MudItem>
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            Please note that JMPPAD is in an early Alpha state. Changes may occur or corrupt your user data at any time.
+        </MudAlert>
+    </MudItem>
+</MudGrid>
+<EditForm Model="@_model" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator/>
+    <MudGrid Justify="Justify.Center">
+        <MudItem lg="6" xs="12" sm="6">
+            <MudCard>
+                <MudCardContent>
+                    <h2>Sign Up</h2>
+                    @if (!string.IsNullOrEmpty(Error))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                            @Error
+                        </MudAlert>
+                    }
+                    <MudTextField HelperText="Max. 20 characters" @bind-Value="_model.Username" Label="Username" For="@(() => _model.Username)"/>
+                    <MudTextField @bind-Value="_model.Email" Label="Email" InputType="InputType.Email" For="() => _model.Email"/>
+                    <MudTextField @bind-Value="_model.Password" Label="Password" InputType="InputType.Password" For="() => _model.Password"/>
+                    <MudTextField @bind-Value="_model.ConfirmPassword" Label="Confirm Password" InputType="InputType.Password" For="() => _model.ConfirmPassword"/>
+                    <MudCheckBox @bind-Checked="Terms" Label="Agree to Privacy Policy" Color="Color.Primary" UnCheckedColor="Color.Default"></MudCheckBox>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton FullWidth="true" Disabled="RegisterAttempt" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success" Class="ml-auto" OnClick="OnValidSubmit">Sign Up</MudButton>
+                </MudCardActions>
+                <MudCardActions>
+                    <MudSpacer/>
+                    <MudLink Href="/Login">Already have an account?</MudLink>
+                    <MudSpacer/>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</EditForm>
+
+@code {
+    private bool RegisterAttempt { get; set; }
+    private bool Terms { get; set; }
+    private string? Error { get; set; }
+
+    readonly SignUpForm _model = new();
+
+    public class SignUpForm
+    {
+        [Required(ErrorMessage = "Username is required.")]
+        [StringLength(15, ErrorMessage = "Username can't be more than 15 characters.")]
+        public string? Username { get; set; }
+
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Please provide a valid email address")]
+        public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Password is required.")]
+        [StringLength(30, ErrorMessage = "Password must be at least 8 characters long.", MinimumLength = 8)]
+        [DataType(DataType.Password)]
+        public string? Password { get; set; }
+
+        [Required(ErrorMessage = "Please confirm your password.")]
+        [Compare(nameof(Password))]
+        public string? ConfirmPassword { get; set; }
+    }
+
+    private async Task OnValidSubmit()
+    {
+        RegisterAttempt = true;
+        Error = null;
+
+        await Task.Delay(200);
+
+        if (string.IsNullOrEmpty(_model.Email) || string.IsNullOrEmpty(_model.Password) || string.IsNullOrEmpty(_model.ConfirmPassword))
+        {
+            Error = "Please fill out all fields.";
+            RegisterAttempt = false;
+            return;
+        }
+
+        var email = new EmailAddressAttribute();
+        if (!email.IsValid(_model.Email))
+        {
+            Error = "Invalid email address";
+            RegisterAttempt = false;
+            return;
+        }
+
+        if (!Terms)
+        {
+            Error = "Please accept the Terms & Conditions";
+            RegisterAttempt = false;
+            return;
+        }
+
+        if (_model.Password != _model.ConfirmPassword)
+        {
+            Error = "Passwords do not match";
+            RegisterAttempt = false;
+            return;
+        }
+
+        var validPassword = await UserMgr.PasswordValidators[0].ValidateAsync(UserMgr, null!, _model.Password);
+        if (!validPassword.Succeeded)
+        {
+            Error = string.Join(Environment.NewLine, validPassword.Errors.Select(i => i.Description));
+            RegisterAttempt = false;
+            return;
+        }
+
+        var emailUsed = await UserMgr.FindByEmailAsync(_model.Email);
+        if (emailUsed != null)
+        {
+            Error = "That email is already in use!";
+            RegisterAttempt = false;
+            return;
+        }
+
+        if (_model.Username != null)
+        {
+            var userUsed = await UserMgr.FindByNameAsync(_model.Username);
+            if (userUsed != null)
+            {
+                Error = "That username is taken";
+                RegisterAttempt = false;
+                return;
+            }
+        }
+
+        if (_model.Password == _model.ConfirmPassword)
+        {
+            var key = Guid.NewGuid();
+            LoginMiddleware.Logins[key] = new LoginInfo {Username = _model.Username, Email = _model.Email, Password = _model.Password};
+            NavMgr.NavigateTo($"/register?key={key}", true);
+        }
+    }
+
+}

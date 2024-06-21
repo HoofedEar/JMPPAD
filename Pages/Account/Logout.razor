@@ -1,0 +1,14 @@
+@page "/Logout"
+@using Microsoft.AspNetCore.Mvc
+@attribute [IgnoreAntiforgeryToken]
+@inject NavigationManager NavManager
+
+@code {
+
+    protected override async void OnInitialized()
+    {
+        await base.OnInitializedAsync();
+        NavManager.NavigateTo("/logout", true);
+    }
+
+}

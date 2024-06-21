@@ -1,0 +1,163 @@
+@page "/MyDecks"
+@using Microsoft.AspNetCore.Identity
+@using JMPPAD.Helpers
+@using JMPPAD.Data.Tables
+@using CSharpVitamins
+@using JMPPAD.Data.Tables.UserData
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@inject DeckHelpers DeckHelpers
+@inject ManaHelpers ManaHelpers
+
+<MudText Typo="Typo.h4">My Decks</MudText>
+<MudGrid Justify="Justify.Center" Spacing="1">
+    <MudItem xs="12">
+        <MudSpacer/>
+        <MudList Clickable="true">
+            <MudListItem Icon="@Icons.Material.Filled.Book" IconColor="Color.Primary" OnClick="ShowCreateDeck">Create New Deck</MudListItem>
+            <MudDivider/>
+            @if (UserDeckList != null && UserDeckList.Any())
+            {
+                foreach (var deck in UserDeckList)
+                {
+                    <MudListItem Href="@ParseDeckId(deck)" Class="">
+                        @deck.Name
+                        <i style="padding-left: 4px; margin-top: 8px">
+                            @foreach (var color in ManaHelpers.ParseDeckColors(deck))
+                            {
+                                @((MarkupString) color)
+                            }
+                        </i>
+                    </MudListItem>
+                    <MudDivider/>
+                }
+            }
+        </MudList>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? UserId { get; set; }
+    private List<Deck>? UserDeckList { get; set; }
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (auth.User.Identity is {IsAuthenticated: true })
+        {
+            await InitializeUserDecks();
+            await base.OnParametersSetAsync();
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/Login");
+        }
+    }
+
+    private async Task InitializeUserDecks()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        UserId = UserManager.GetUserId(user);
+
+        if (UserId != null) UserDeckList = await DeckHelpers.GetUserDecks(UserId);
+    }
+
+    string ParseDeckId(Deck deck)
+    {
+        return "/deck/" + (ShortGuid) deck.Id;
+    }
+
+}
+
+<MudDialog @bind-IsVisible="Visible" Options="_options">
+    <TitleContent>
+        <MudText Align="Align.Start" Typo="Typo.h6">
+            Create New Deck
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="12" Class="align-content-center">
+                    <MudTextField @bind-Value="NewDeckName" Placeholder="Deck Name" T="string" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+                </MudItem>
+                @* <MudItem xs="12" Class="align-content-center"> *@
+                @*     <MudSelect @bind-Value="NewDeckTheme" Margin="Margin.Dense" Dense="true" Text="Theme" T="string" Variant="Variant.Outlined"> *@
+                @*         <MudSelectItem Value="@("LastModified")" T="string"> *@
+                @*             Last Modified *@
+                @*         </MudSelectItem> *@
+                @*         <MudSelectItem Value="@("Color")" T="string"> *@
+                @*             Color *@
+                @*         </MudSelectItem> *@
+                @*     </MudSelect> *@
+                @* </MudItem> *@
+                @* <MudItem xs="12"> *@
+                @*     <MudButtonGroup Style="width: 100%; justify-content: center" Color="Color.Default" Variant="Variant.Outlined"> *@
+                @*         <MudIconButton Icon="ms ms-w" OnClick="() => {_w.Selected = !_w.Selected; _c.Selected = false;}" Style="@(_w.Selected ? @"color: black; background: rgb(248, 231, 185)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-u" OnClick="() => {_u.Selected = !_u.Selected; _c.Selected = false;}" Style="@(_u.Selected ? @"color: black; background: rgb(179, 206, 234)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-b" OnClick="() => {_b.Selected = !_b.Selected; _c.Selected = false;}" Style="@(_b.Selected ? @"color: black; background: rgb(166, 159, 157)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-r" OnClick="() => {_r.Selected = !_r.Selected; _c.Selected = false;}" Style="@(_r.Selected ? @"color: black; background: rgb(235, 159, 130)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-g" OnClick="() => {_g.Selected = !_g.Selected; _c.Selected = false;}" Style="@(_g.Selected ? @"color: black; background: rgb(196, 211, 202)" : @"color: black; background: white")"/> *@
+                @*         <MudIconButton Icon="ms ms-c" OnClick="() => {_c.Selected = !_c.Selected; _w.Selected = _u.Selected = _b.Selected = _r.Selected = _g.Selected = false;}" Style="@(_c.Selected ? @"color: black; background: rgb(196, 187, 184)" : @"color: black; background: white")"/> *@
+                @*     </MudButtonGroup> *@
+                @* </MudItem> *@
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Visible = false">Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">Create</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    private readonly DialogOptions _options = new() {DisableBackdropClick = true};
+    private bool Visible { get; set; }
+
+    class ColorId
+    {
+        public bool Selected { get; set; }
+        public string? Value { get; init; }
+    }
+
+    private readonly ColorId _w = new() {Value = "W"};
+    private readonly ColorId _u = new() {Value = "U"};
+    private readonly ColorId _b = new() {Value = "B"};
+    private readonly ColorId _r = new() {Value = "R"};
+    private readonly ColorId _g = new() {Value = "G"};
+    private readonly ColorId _c = new() {Value = "C"};
+    private string? NewDeckName { get; set; }
+    private string? NewDeckTheme { get; set; }
+    private string? NewDeckColorIdentity { get; set; }
+
+    async Task Submit()
+    {
+        Visible = false;
+        var colors = new List<ColorId> {_w, _u, _b, _r, _g, _c};
+
+        foreach (var color in colors.Where(color => color.Selected))
+        {
+            NewDeckColorIdentity += color.Value;
+        }
+
+        if (UserId != null && NewDeckColorIdentity != null && NewDeckName != null && NewDeckTheme != null)
+        {
+            await DeckHelpers.CreateNewDeck(UserId, NewDeckColorIdentity, NewDeckName, NewDeckTheme);
+            await InitializeUserDecks();
+        }
+    }
+
+    void ShowCreateDeck()
+    {
+        NewDeckName = "";
+        NewDeckTheme = "";
+        _w.Selected = _u.Selected = _b.Selected = _r.Selected = _g.Selected = _c.Selected = false;
+        NewDeckColorIdentity = "";
+        Visible = true;
+    }
+
+}

@@ -1,0 +1,112 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_defaultTheme" @bind-IsDarkMode="@_darkMode"/>
+
+@code{
+
+    readonly MudTheme _defaultTheme = new()
+    {
+        Palette = new PaletteLight
+        {
+            Primary = "#3371CC",
+            Secondary = "#379A95",
+            AppbarBackground = "3371cc"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#3371CC",
+            Secondary = "#379A95",
+            AppbarBackground = "3371cc"
+        }
+    };
+}
+
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<PageTitle>JMPPAD</PageTitle>
+
+<div class="page">
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <a href="/" style="max-width: 120px; width: 100%;">
+                <img src="svg/JMPPAD.svg" style="max-width: 120px; padding-top: 14px;" alt="JMPPAD"/>
+            </a>
+            <MudSpacer/>
+            <AuthorizeView>
+                <Authorized>
+                    <MudTooltip Text="Decks">
+                        <MudIconButton Icon="@Icons.Material.Filled.SpaceDashboard" Href="/mydecks" Color="Color.Inherit"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Cubes">
+                        <MudIconButton Icon="@Icons.Material.Filled.VerticalShades" Color="Color.Inherit"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Favorites">
+                        <MudIconButton Icon="@Icons.Material.Filled.Favorite" Href="/favorites" Color="Color.Inherit"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Account">
+                        <MudIconButton Icon="@Icons.Material.Filled.Person" OnClick="@(() => { if (context.User.Identity is {Name: { } }) OpenDialog(context.User.Identity.Name); })" Color="Color.Inherit"/>
+                    </MudTooltip>
+                </Authorized>
+                <NotAuthorized>
+                    <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Href="/signup" Color="Color.Inherit"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Login" Href="/login" Color="Color.Inherit"/>
+                </NotAuthorized>
+            </AuthorizeView>
+        </MudAppBar>
+        <MudMainContent Class="pb-4">
+            <MudContainer Fixed="true" Class="pa-3" Style="max-width: 850px;">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</div>
+
+@code{
+    // TODO Add DarkMode to User table
+    bool _darkMode;
+    private string? Username { get; set; }
+
+    void OpenDialog(string user)
+    {
+        Username = user;
+        Visible = true;
+    }
+
+}
+
+<MudDialog @bind-IsVisible="@Visible" Style="min-width: 320px; max-width: 320px;">
+    <TitleContent>
+        <div class="d-flex">
+            <MudAvatar Color="Color.Warning" Variant="Variant.Filled">
+                <MudIcon Color="Color.Dark" Icon="@Icons.Custom.Uncategorized.Radioactive" Size="Size.Large"/>
+            </MudAvatar>
+            <MudText Class="pt-2 pl-2">@Username</MudText>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudSwitch @bind-Checked="@_darkMode" Color="Color.Primary" Label="Dark Mode"/>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Submit">Close</MudButton>
+        <MudButton Color="Color.Error" Href="/logout">Logout</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool Visible { get; set; }
+
+    void Submit()
+    {
+        Visible = false;
+    }
+
+}
