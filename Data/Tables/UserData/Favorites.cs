@@ -12,7 +12,7 @@ public class Favorites
     /// </summary>
     [ForeignKey("User")]
     public string UserId { get; set; } = null!;
-    public IdentityUser? User { get; set; }
+    public ApplicationUser? User { get; set; }
     
     /// <summary>
     /// Deck that was favorited
