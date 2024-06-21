@@ -3,17 +3,19 @@
 @using JMPPAD.Helpers
 @using JMPPAD.Data.Tables
 @using CSharpVitamins
+@using JMPPAD.Data.Tables.UserData
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
-@inject UserManager<IdentityUser> UserManager
+@inject UserManager<ApplicationUser> UserManager
 @inject DeckHelpers DeckHelpers
 @inject ManaHelpers ManaHelpers
 
+<MudText Typo="Typo.h4">My Decks</MudText>
 <MudGrid Justify="Justify.Center" Spacing="1">
     <MudItem xs="12">
         <MudSpacer/>
         <MudList Clickable="true">
-            <MudListItem Icon="fa-solid fa-book-sparkles" IconColor="Color.Primary" OnClick="ShowCreateDeck">Create New Deck</MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.Book" IconColor="Color.Primary" OnClick="ShowCreateDeck">Create New Deck</MudListItem>
             <MudDivider/>
             @if (UserDeckList != null && UserDeckList.Any())
             {
@@ -22,7 +24,7 @@
                     <MudListItem Href="@ParseDeckId(deck)" Class="">
                         @deck.Name
                         <i style="padding-left: 4px; margin-top: 8px">
-                            @foreach (var color in ManaHelpers.DeckColorParse(deck))
+                            @foreach (var color in ManaHelpers.ParseDeckColors(deck))
                             {
                                 @((MarkupString) color)
                             }

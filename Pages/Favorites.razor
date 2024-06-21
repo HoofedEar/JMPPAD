@@ -1,0 +1,57 @@
+@page "/Favorites"
+@using CSharpVitamins
+@using JMPPAD.Data.Tables
+@using JMPPAD.Data.Tables.UserData
+@using JMPPAD.Helpers
+@using Microsoft.AspNetCore.Identity
+@inject DeckHelpers DeckHelpers
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ManaHelpers ManaHelpers
+@inject NavigationManager NavigationManager
+
+
+<MudTable T="Deck" Items="@Decks.Take(4)" Hover="true" Breakpoint="Breakpoint.Sm" LoadingProgressColor="Color.Info" OnRowClick="DeckClickRow">
+    <HeaderContent>
+        <MudTh>Deck Name</MudTh>
+        <MudTh>Color Identity</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Deck Name">@context.Name</MudTd>
+        <MudTd DataLabel="Creator">@{
+                                       var c = ManaHelpers.DeckColorParse(context);
+                                       foreach (var symbol in c)
+                                       {
+                                           @((MarkupString) symbol)
+                                       }
+                                   }</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Deck?> Decks { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = auth.User;
+        var userId = UserManager.GetUserId(user);
+        if (userId == null)
+        {
+            return;
+        }
+        
+        Decks = await DeckHelpers.GetFavoriteDecks(userId);
+    }
+    
+    private void GoToDeck(Deck deck)
+    {
+        NavigationManager.NavigateTo($"/deck/" + (ShortGuid) deck.Id);
+    }
+    
+    private void DeckClickRow(TableRowClickEventArgs<Deck> args)
+    {
+        GoToDeck(args.Item);
+    }
+
+}

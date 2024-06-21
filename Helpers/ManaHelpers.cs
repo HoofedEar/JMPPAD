@@ -81,23 +81,31 @@ public class ManaHelpers
             .ToList();
 
         newList.Reverse();
-        foreach (var color in newList)
+        
+        
+        return newList;
+    }
+
+    public List<string> ParseDeckColors(Deck deck)
+    {
+        var colorList = new List<string>();
+        foreach (var color in deck.ColorIdentity!.ToCharArray())
         {
             switch (color)
             {
-                case "W":
+                case 'W':
                     colorList.Add(W());
                     break;
-                case "U":
+                case 'U':
                     colorList.Add(U());
                     break;
-                case "B":
+                case 'B':
                     colorList.Add(B());
                     break;
-                case "R":
+                case 'R':
                     colorList.Add(R());
                     break;
-                case "G":
+                case 'G':
                     colorList.Add(G());
                     break;
             }

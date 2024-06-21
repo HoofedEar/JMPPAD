@@ -3,10 +3,11 @@
 @using JMPPAD.Data.Tables
 @using Microsoft.AspNetCore.Identity
 @using CSharpVitamins
+@using JMPPAD.Data.Tables.UserData
 @inject DeckHelpers DeckHelpers
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject UserManager<IdentityUser> UserManager
+@inject UserManager<ApplicationUser> UserManager
 @inject ISnackbar Snackbar
 @inject ManaHelpers ManaHelpers
 @inject NavigationManager NavigationManager
@@ -20,7 +21,7 @@
         color: black;
     }
 </style>
-
+    
 @if (Valid)
 {
     <MudGrid Justify="Justify.Center">
@@ -44,31 +45,40 @@
                                         @if (!EditMode && IsOwner)
                                         {
                                             <MudTooltip Text="Edit Mode">
-                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="fa-solid fa-pen-to-square fa-fw" Color="Color.Info"></MudIconButton>
+                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="@Icons.Material.Filled.Edit" Color="Color.Info"></MudIconButton>
                                             </MudTooltip>
                                         }
                                         else if (IsOwner)
                                         {
                                             <MudTooltip Text="View Mode">
-                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="fa-solid fa-eye fa-fw" Color="Color.Info"></MudIconButton>
+                                                <MudIconButton Size="Size.Medium" OnClick="EditModeToggle" Icon="@Icons.Material.Filled.Save" Color="Color.Info"></MudIconButton>
                                             </MudTooltip>
                                         }
                                         <MudTooltip Text="Create Copy">
-                                            <MudIconButton Size="Size.Medium" OnClick="ConfirmCopy" Icon="fa-solid fa-copy fa-fw" Color="Color.Info"></MudIconButton>
+                                            <MudIconButton Size="Size.Medium" OnClick="ConfirmCopy" Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info"></MudIconButton>
                                         </MudTooltip>
-                                        <MudTooltip Text="Add to Favorites">
-                                            <MudIconButton Icon="fa-regular fa-heart" Color="Color.Error"></MudIconButton>
-                                        </MudTooltip>
+                                        @if (IsFavorited)
+                                        {
+                                            <MudTooltip Text="Remove from Favorites">
+                                                <MudIconButton Size="Size.Medium" OnClick="RemoveDeckFromFavorites" Icon="@Icons.Material.Filled.Favorite" Color="Color.Error"></MudIconButton>
+                                            </MudTooltip>
+                                        }
+                                        else
+                                        {
+                                            <MudTooltip Text="Add to Favorites">
+                                                <MudIconButton Size="Size.Medium" OnClick="AddDeckToFavorites" Icon="@Icons.Material.Filled.FavoriteBorder" Color="Color.Error"></MudIconButton>
+                                            </MudTooltip>
+                                        }
                                         @if (!EditMode)
                                         {
                                             <MudTooltip Text="Share Link">
-                                                <MudIconButton Size="Size.Medium" OnClick="@(() => Snackbar.Add("Link copied to clipboard", Severity.Success))" Icon="fa-solid fa-share-from-square fa-fw" Color="Color.Info"></MudIconButton>
+                                                <MudIconButton Size="Size.Medium" OnClick="@(() => Snackbar.Add("Link copied to clipboard", Severity.Success))" Icon="@Icons.Material.Filled.IosShare" Color="Color.Info"></MudIconButton>
                                             </MudTooltip>
                                         }
                                         else
                                         {
                                             <MudTooltip Text="Delete Deck">
-                                                <MudIconButton Size="Size.Medium" OnClick="ConfirmDelete" Icon="fa-solid fa-trash fa-fw" Color="Color.Error"></MudIconButton>
+                                                <MudIconButton Size="Size.Medium" OnClick="ConfirmDelete" Icon="@Icons.Material.Filled.Delete" Color="Color.Error"></MudIconButton>
                                             </MudTooltip>
                                         }
                                     </MudGrid>
@@ -86,7 +96,7 @@
                                     <MudAutocomplete @ref="AddCardForm" Immediate="true" Dense="true" Margin="Margin.Dense" T="string"
                                                      Label="Add Card" @bind-Value="AddCard" SearchFunc="@Search"
                                                      CoerceText="true" ResetValueOnEmptyText="true"
-                                                     Adornment="Adornment.End" AdornmentIcon="fa-solid fa-plus fa-fw"
+                                                     Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Add"
                                                      OnAdornmentClick="AddCardClick" AdornmentColor="Color.Success" AdornmentAriaLabel="Add Card"/>
                                 </MudForm>
                             </td>
@@ -101,7 +111,7 @@
                                     <MudButton OnClick="() => ShowCardImage(card)" Style="@($"color: black; background:{RowColorParse(card)}; width: {WidthParse()}")" Size="Size.Small" ButtonType="ButtonType.Button">@card.Name</MudButton>
                                     @if (EditMode)
                                     {
-                                        <MudIconButton Style="padding-left: 3%" OnClick="() => { RemoveCardClick(card); }" Color="Color.Error" Size="Size.Small" Icon="fa-solid fa-square-minus"/>
+                                        <MudIconButton Style="margin-left: 10px" OnClick="() => { RemoveCardClick(card); }" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.Remove"/>
                                     }
                                 </MudTd>
                             </tr>
@@ -120,7 +130,7 @@
                             Colors:
                             @if (DeckList != null)
                             {
-                                var colors = ManaHelpers.DeckListColorParse(DeckList);
+                                var colors = ManaHelpers.ParseDeckColors(Deck);
 
                                 foreach (var symbol in colors)
                                 {
@@ -233,6 +243,7 @@ else
 }
 
 
+
 @code {
 
     [Parameter]
@@ -246,6 +257,9 @@ else
     private List<Card>? DeckList { get; set; }
     private bool IsOwner { get; set; }
     private string? OwnerName { get; set; }
+    private string? OwnerId { get; set; }
+    private string? UserId { get; set; }
+    private bool IsFavorited { get; set; }
 
     private string? AddCard { get; set; }
     private string[] CardNames { get; set; } = {};
@@ -262,8 +276,17 @@ else
             return;
         }
 
-        ShortGuid deckSid = DeckId;
-        DeckId = deckSid.Guid.ToString();
+        try
+        {
+            ShortGuid deckSid = DeckId;
+            DeckId = deckSid.Guid.ToString();
+        }
+        catch (Exception)
+        {
+            Valid = false;
+            await base.OnParametersSetAsync();
+            return;
+        }
 
         Deck = await DeckHelpers.CheckDeckId(DeckId);
 
@@ -271,6 +294,8 @@ else
         {
             Valid = true;
             await LoadDeck();
+            // Get current logged in User ID
+            
         }
         else
         {
@@ -283,7 +308,9 @@ else
         {
             EditMode = false;
         }
-
+        
+        IsFavorited = await DeckHelpers.CheckDeckFavorite(Deck, UserId!);
+        
         await base.OnParametersSetAsync();
     }
 
@@ -296,8 +323,12 @@ else
         {
             IsOwner = true;
         }
+        
         var owner = await UserManager.FindByIdAsync(Deck?.Owner.ToString() ?? string.Empty);
         OwnerName = owner?.UserName;
+        OwnerId = owner?.Id;
+
+        UserId = userId;
     }
 
     private async Task LoadDeck()
@@ -359,7 +390,7 @@ else
 
         var dialog = await DialogService.ShowAsync<ConfirmDialog>("Confirm", parameters);
         var result = await dialog.Result;
-        if (!result.Cancelled)
+        if (!result.Canceled)
         {
             if (DeckId != null) await DeckHelpers.DeleteDeck(DeckId);
             NavigationManager.NavigateTo("/mydecks");
@@ -370,7 +401,9 @@ else
     {
         if (EditMode)
             if (Deck != null)
+            {
                 await DeckHelpers.UpdateDeckName(Deck, Deck.Name!);
+            }
 
         EditMode = !EditMode;
 
@@ -429,7 +462,24 @@ else
     {
         return Task.FromResult(string.IsNullOrEmpty(value) ? Array.Empty<string>() : CardNames.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase)));
     }
-
+    
+    private async void AddDeckToFavorites()
+    {
+        if (Deck == null) return;
+        var success = await DeckHelpers.AddDeckToFavorites(Deck, UserId!);
+        if (!success) return;
+        Snackbar.Add("Deck added to favorites", Severity.Success);
+        IsFavorited = true;
+    }
+    
+    private async void RemoveDeckFromFavorites()
+    {
+        if (Deck == null) return;
+        var success = await DeckHelpers.RemoveDeckFromFavorites(Deck, UserId!);
+        if (!success) return;
+        Snackbar.Add("Deck removed from favorites", Severity.Success);
+        IsFavorited = false;
+    }
 }
 
 

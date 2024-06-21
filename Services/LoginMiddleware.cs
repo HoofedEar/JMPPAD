@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using JMPPAD.Data.Tables.UserData;
 using Microsoft.AspNetCore.Identity;
 
 namespace JMPPAD.Services;
@@ -10,18 +11,11 @@ public class LoginInfo
     public string? Password { get; set; }
 }
 
-public class LoginMiddleware
+public class LoginMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public LoginMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
-
     public static IDictionary<Guid, LoginInfo> Logins { get; } = new ConcurrentDictionary<Guid, LoginInfo>();
 
-    public async Task Invoke(HttpContext context, SignInManager<IdentityUser> signInMgr)
+    public async Task Invoke(HttpContext context, SignInManager<ApplicationUser> signInMgr)
     {
         // Login request
         if (context.Request.Path == "/login" && context.Request.Query.ContainsKey("key"))
@@ -56,7 +50,7 @@ public class LoginMiddleware
             var key = Guid.Parse(context.Request.Query["key"]!);
             var info = Logins[key];
 
-            var user = new IdentityUser
+            var user = new ApplicationUser
             {
                 UserName = info.Username,
                 NormalizedUserName = info.Username?.ToUpper(),
@@ -82,6 +76,6 @@ public class LoginMiddleware
             return;
         }
 
-        await _next.Invoke(context);
+        await next.Invoke(context);
     }
 }

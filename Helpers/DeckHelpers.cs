@@ -1,41 +1,33 @@
 using JMPPAD.Data;
 using JMPPAD.Data.Tables;
+using JMPPAD.Data.Tables.UserData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace JMPPAD.Helpers;
 
-public class DeckHelpers
+public class DeckHelpers(ApplicationDbContext context, IMemoryCache cache, ManaHelpers manaHelpers)
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IMemoryCache _cache;
-
-    public DeckHelpers(ApplicationDbContext context, IMemoryCache cache)
-    {
-        _context = context;
-        _cache = cache;
-    }
-
     public async Task<Deck> CheckDeckId(string deckId)
     {
         try
         {
             var deckGuid = new Guid(deckId);
-            var deck = await _context.Decks
+            var deck = await context.Decks
                 .Where(i => i.Id == deckGuid)
                 .FirstOrDefaultAsync();
 
-            return deck ?? new Deck {Id = Guid.Empty};
+            return deck ?? new Deck { Id = Guid.Empty };
         }
         catch
         {
-            return new Deck {Id = Guid.Empty};
+            return new Deck { Id = Guid.Empty };
         }
     }
 
     public async Task<List<Card>> GetDeckList(string deckId)
     {
-        var result = await _context.Decks
+        var result = await context.Decks
             .Where(d => d.Id == new Guid(deckId))
             .Select(d => d.DeckContents)
             .FirstOrDefaultAsync();
@@ -45,7 +37,7 @@ public class DeckHelpers
 
     public async Task<bool> AddCardToDeck(Deck deck, string cardName)
     {
-        var card = await _context.Cards
+        var card = await context.Cards
             .Where(c => c.Name != null && c.Name.ToUpper() == cardName.ToUpper())
             .Select(c => c.Id)
             .FirstOrDefaultAsync();
@@ -61,28 +53,28 @@ public class DeckHelpers
             DeckId = deck.Id
         };
 
-        await _context.DeckContents.AddAsync(addition);
-        await _context.SaveChangesAsync();
+        await context.DeckContents.AddAsync(addition);
+        await context.SaveChangesAsync();
         return true;
     }
 
     public async Task<bool> RemoveCardFromDeck(Deck deck, Card card)
     {
-        var value = await _context.DeckContents
+        var value = await context.DeckContents
             .Where(d => d.Deck == deck)
             .Where(c => c.Card == card)
             .FirstOrDefaultAsync();
 
         if (value == null) return false;
 
-        _context.DeckContents.Remove(value);
-        await _context.SaveChangesAsync();
+        context.DeckContents.Remove(value);
+        await context.SaveChangesAsync();
         return true;
     }
 
     public async Task<List<Card>> GetCardListNew(string deckId)
     {
-        var result = await _context.Decks
+        var result = await context.Decks
             .Where(d => d.Id == new Guid(deckId))
             .Select(d => d.DeckContents)
             .FirstOrDefaultAsync();
@@ -92,9 +84,9 @@ public class DeckHelpers
 
     public async Task<string[]> GetCardNames()
     {
-        if (_cache.TryGetValue("CardName", out string[]? cardNames)) return cardNames!;
+        if (cache.TryGetValue("CardName", out string[]? cardNames)) return cardNames!;
 
-        cardNames = await _context.Cards
+        cardNames = await context.Cards
             .Select(i => i.Name!.ToString())
             .Distinct()
             .ToArrayAsync();
@@ -102,16 +94,16 @@ public class DeckHelpers
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetPriority(CacheItemPriority.NeverRemove);
 
-        _cache.Set("CardName", cardNames, cacheEntryOptions);
+        cache.Set("CardName", cardNames, cacheEntryOptions);
 
         return cardNames;
     }
 
     public async Task<Card[]?> GetCardPrintings(Card card)
     {
-        if (_cache.TryGetValue($"{card.Name!}", out Card[]? cardPrintings)) return cardPrintings!;
+        if (cache.TryGetValue($"{card.Name!}", out Card[]? cardPrintings)) return cardPrintings!;
 
-        cardPrintings = await _context.Cards
+        cardPrintings = await context.Cards
             .Where(i => i.Name == card.Name)
             .OrderBy(i => i.ReleaseDate)
             .ToArrayAsync();
@@ -119,14 +111,14 @@ public class DeckHelpers
         var cacheEntryOptions = new MemoryCacheEntryOptions()
             .SetPriority(CacheItemPriority.NeverRemove);
 
-        _cache.Set($"{card.Name!}", cardPrintings, cacheEntryOptions);
+        cache.Set($"{card.Name!}", cardPrintings, cacheEntryOptions);
 
         return cardPrintings;
     }
 
     public async Task<List<Deck>> GetUserDecks(string userId)
     {
-        var decksList = await _context.Decks
+        var decksList = await context.Decks
             .Where(d => d.Owner == new Guid(userId))
             .ToListAsync();
 
@@ -144,56 +136,127 @@ public class DeckHelpers
             IsOfficial = false
         };
 
-        await _context.Decks.AddAsync(newDeck);
-        await _context.SaveChangesAsync();
+        await context.Decks.AddAsync(newDeck);
+        await context.SaveChangesAsync();
     }
 
     public async Task DeleteDeck(string deckId)
     {
-        var deck = await _context.Decks
+        var deck = await context.Decks
             .Where(d => d.Id == new Guid(deckId))
             .FirstOrDefaultAsync();
 
-        if (deck != null)
-        {
-            _context.Decks.Remove(deck);
-        }
+        if (deck == null) return;
 
-        await _context.SaveChangesAsync();
+        context.Decks.Remove(deck);
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateDeck(Deck deck, List<Card> deckList)
     {
-        var entity = await _context.Decks.Where(i => i == deck).FirstOrDefaultAsync();
+        var entity = await context.Decks.Where(i => i == deck).FirstOrDefaultAsync();
         if (entity != null) entity.DeckContents = deckList;
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateCardInDeck(Deck deck, Card oldCard, Card newCard)
     {
-        var content = await _context.DeckContents
+        var content = await context.DeckContents
             .Where(i => i.Deck == deck)
+            .Include(deckContent => deckContent.Card)
             .ToListAsync();
 
         var obj = content.FirstOrDefault(obj => obj.Card == oldCard);
-        if (obj != null)
-        {
-            obj.Card = newCard;
-            await _context.SaveChangesAsync();
-        }
+        if (obj == null) return;
+
+        obj.Card = newCard;
+        await context.SaveChangesAsync();
     }
 
     public async Task UpdateDeckName(Deck deck, string name)
     {
-        var obj = await _context.Decks
+        var obj = await context.Decks
+            .Where(i => i == deck)
+            .Include(d => d.DeckContents)
+            .FirstOrDefaultAsync();
+
+        if (obj == null) return;
+
+        obj.Name = name;
+
+        if (obj.DeckContents != null)
+            obj.ColorIdentity = string.Join("", manaHelpers.DeckListColorParse(obj.DeckContents));
+
+        await context.SaveChangesAsync();
+    }
+
+    public async Task<bool> AddDeckToFavorites(Deck deck, string userId)
+    {
+        var obj = await context.Decks
             .Where(i => i == deck)
             .FirstOrDefaultAsync();
 
-        if (obj != null)
-        {
-            obj.Name = name;
-        }
+        if (obj == null) return false;
 
-        await _context.SaveChangesAsync();
+        // Check if deck is already favorited
+        var check = await context.Favorites
+            .Where(i => i.DeckId == obj.Id && i.UserId == userId)
+            .FirstOrDefaultAsync();
+        if (check != null) return false;
+
+        var favorite = new Favorites
+        {
+            DeckId = obj.Id,
+            UserId = userId
+        };
+
+        await context.Favorites.AddAsync(favorite);
+        await context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> CheckDeckFavorite(Deck deck, string userId)
+    {
+        var obj = await context.Decks
+            .Where(i => i == deck)
+            .FirstOrDefaultAsync();
+
+        if (obj == null) return false;
+
+        var favorite = await context.Favorites
+            .Where(i => i.DeckId == obj.Id && i.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        return favorite != null;
+    }
+
+    public async Task<bool> RemoveDeckFromFavorites(Deck deck, string userId)
+    {
+        var obj = await context.Decks
+            .Where(i => i == deck)
+            .FirstOrDefaultAsync();
+
+        if (obj == null) return false;
+
+        var favorite = await context.Favorites
+            .Where(i => i.DeckId == obj.Id && i.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        if (favorite == null) return false;
+
+        context.Favorites.Remove(favorite);
+        await context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<List<Deck?>> GetFavoriteDecks(string userId)
+    {
+        var decks = await context.Favorites
+            .Where(i => i.UserId == userId)
+            .Include(i => i.Deck)
+            .Select(i => i.Deck)
+            .ToListAsync();
+
+        return decks.Count != 0 ? decks : [];
     }
 }

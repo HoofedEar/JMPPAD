@@ -6,7 +6,7 @@
 
     readonly MudTheme _defaultTheme = new()
     {
-        Palette = new Palette
+        Palette = new PaletteLight
         {
             Primary = "#3371CC",
             Secondary = "#379A95",
@@ -36,19 +36,21 @@
             <AuthorizeView>
                 <Authorized>
                     <MudTooltip Text="Decks">
-                        <MudIconButton Icon="fa-regular fa-cards-blank fa-fw" Href="/mydecks" Color="Color.Inherit"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.SpaceDashboard" Href="/mydecks" Color="Color.Inherit"/>
                     </MudTooltip>
                     <MudTooltip Text="Cubes">
-                        <MudIconButton Icon="fa-regular fa-cube fa-fw" Color="Color.Inherit"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.VerticalShades" Color="Color.Inherit"/>
                     </MudTooltip>
-                    <MudIconButton Icon="fa-regular fa-heart fa-fw" Color="Color.Inherit"/>
+                    <MudTooltip Text="Favorites">
+                        <MudIconButton Icon="@Icons.Material.Filled.Favorite" Href="/favorites" Color="Color.Inherit"/>
+                    </MudTooltip>
                     <MudTooltip Text="Account">
-                        <MudIconButton Icon="fa-regular fa-user-astronaut fa-fw" OnClick="@(() => { if (context.User.Identity is {Name: { } }) OpenDialog(context.User.Identity.Name); })" Color="Color.Inherit"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.Person" OnClick="@(() => { if (context.User.Identity is {Name: { } }) OpenDialog(context.User.Identity.Name); })" Color="Color.Inherit"/>
                     </MudTooltip>
                 </Authorized>
                 <NotAuthorized>
-                    <MudIconButton Icon="fa-regular fa-user-plus fa-fw" Href="/signup" Color="Color.Inherit"/>
-                    <MudIconButton Icon="fa-regular fa-right-to-bracket fa-fw" Href="/login" Color="Color.Inherit"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.PersonAdd" Href="/signup" Color="Color.Inherit"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Login" Href="/login" Color="Color.Inherit"/>
                 </NotAuthorized>
             </AuthorizeView>
         </MudAppBar>

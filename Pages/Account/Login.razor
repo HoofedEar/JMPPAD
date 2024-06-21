@@ -1,10 +1,11 @@
 @page "/Login"
+@using JMPPAD.Data.Tables.UserData
 @using JMPPAD.Services
 @using Microsoft.AspNetCore.Identity
 @attribute [AllowAnonymous]
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject SignInManager<IdentityUser> SignInMgr
-@inject UserManager<IdentityUser> UserMgr
+@inject SignInManager<ApplicationUser> SignInMgr
+@inject UserManager<ApplicationUser> UserMgr
 @inject NavigationManager NavMgr
 
 

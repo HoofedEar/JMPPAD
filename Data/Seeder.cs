@@ -1,6 +1,7 @@
 using System.Text.Json;
 using JMPPAD.Data.Scryfall;
 using JMPPAD.Data.Tables;
+using JMPPAD.Data.Tables.UserData;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,7 +13,7 @@ public static class Seeder
     {
         using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
         var context = scope.ServiceProvider.GetService<ApplicationDbContext>();
-        var userMgr = scope.ServiceProvider.GetService<UserManager<IdentityUser>>();
+        var userMgr = scope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
         var config = scope.ServiceProvider.GetService<IConfiguration>();
         if (config == null || context == null || userMgr == null)
         {
@@ -138,7 +139,7 @@ public static class Seeder
 
         // Create a Test User
         var userId = Guid.NewGuid();
-        var testUser = new IdentityUser
+        var testUser = new ApplicationUser
         {
             Id = userId.ToString(),
             UserName = "AliceSmith",
