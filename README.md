@@ -9,3 +9,4 @@ A deckbuilding sharing platform specifically tailored to the Magic: the Gatherin
 - [ ] Favorites lists
 - [ ] Cubes (collections of decks)
 - [ ] Deck stats (curve, etc)
+- [ ] Content moderation (titles)
